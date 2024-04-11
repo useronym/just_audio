@@ -362,6 +362,24 @@ class _JustAudioPlayer extends AudioPlayerPlatform {
   Future<SetPreferredPeakBitRateResponse> setPreferredPeakBitRate(
           SetPreferredPeakBitRateRequest request) =>
       _playerAudioHandler.customSetPreferredPeakBitRate(request);
+
+  @override
+  Future<StartVisualizerResponse> startVisualizer(
+      StartVisualizerRequest request) =>
+        _playerAudioHandler.customStartVisualizer(request);
+
+  @override
+  Future<StopVisualizerResponse> stopVisualizer(StopVisualizerRequest request) {
+    throw UnimplementedError("stopVisualizer() has not been implemented.");
+  }
+
+  @override
+  Stream<VisualizerWaveformCaptureMessage> get visualizerWaveformStream =>
+    _playerAudioHandler.customVisualizerWaveformStream;
+
+  @override
+  Stream<VisualizerFftCaptureMessage> get visualizerFftStream =>
+    _playerAudioHandler.customVisualizerFftStream;
 }
 
 class _PlayerAudioHandler extends BaseAudioHandler
@@ -387,6 +405,12 @@ class _PlayerAudioHandler extends BaseAudioHandler
   List<int> _shuffleIndicesInv = [];
   List<int> _effectiveIndices = [];
   List<int> _effectiveIndicesInv = [];
+
+  final StreamController<VisualizerWaveformCaptureMessage> _visualizerWaveformStreamController = StreamController<VisualizerWaveformCaptureMessage>();
+  Stream<VisualizerWaveformCaptureMessage> get customVisualizerWaveformStream => _visualizerWaveformStreamController.stream;
+
+  final StreamController<VisualizerFftCaptureMessage> _visualizerFftStreamController = StreamController<VisualizerFftCaptureMessage>();
+  Stream<VisualizerFftCaptureMessage> get customVisualizerFftStream => _visualizerFftStreamController.stream;
 
   Future<AudioPlayerPlatform> get _player => _playerCompleter.future;
   int? get index => _justAudioEvent.currentIndex;
@@ -456,6 +480,14 @@ class _PlayerAudioHandler extends BaseAudioHandler
             mediaItem.add(currentMediaItem!);
           }
         });
+
+    player.visualizerWaveformStream.listen((event) {
+      _visualizerWaveformStreamController.add(event);
+    });
+
+    player.visualizerFftStream.listen((event) {
+      _visualizerFftStreamController.add(event);
+    });
   }
 
   @override
@@ -580,6 +612,14 @@ class _PlayerAudioHandler extends BaseAudioHandler
   Future<SetPreferredPeakBitRateResponse> customSetPreferredPeakBitRate(
           SetPreferredPeakBitRateRequest request) async =>
       await (await _player).setPreferredPeakBitRate(request);
+
+  Future<StartVisualizerResponse> customStartVisualizer(
+      StartVisualizerRequest request) async =>
+        await (await _player).startVisualizer(request);
+
+  Future<StopVisualizerResponse> customStopVisualizer(
+      StopVisualizerRequest request) async =>
+        await (await _player).stopVisualizer(request);
 
   void _updateQueue() {
     queue.add(sequence.map((source) => source.tag as MediaItem).toList());
